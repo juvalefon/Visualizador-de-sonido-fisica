@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ver el sonido · Visualizador vocal casero</title>
+<style>
+  :root{
+    --teal:#16c0a8;--teal-deep:#0e3a36;--teal-ink:#0a2725;--mint-bg:#eef5f2;--paper:#fff;
+    --laser:#ff2e63;--laser-soft:#ff6b8a;--pink:#f58fb0;--night:#07201e;--night-2:#0b2c29;
+    --line:#d4e3de;--muted:#5b7a74;--amber:#e8a13a;
+    --font-d: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-m: ui-monospace,"Cascadia Code","SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0;background:var(--mint-bg);color:var(--teal-ink);font-family:var(--font-d);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  h1,h2,h3{line-height:1.1;margin:0;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px;}
+  .eyebrow{font-family:var(--font-m);font-size:.72rem;letter-spacing:.28em;text-transform:uppercase;color:var(--teal);font-weight:600;}
+  .mono{font-family:var(--font-m);}
+
+  nav{position:sticky;top:0;z-index:50;background:rgba(238,245,242,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
+  nav .wrap{display:flex;align-items:center;gap:18px;height:56px;}
+  nav .brand{font-weight:800;letter-spacing:-.02em;font-size:1rem;white-space:nowrap;}
+  nav .brand b{color:var(--teal);}
+  nav .links{display:flex;gap:4px;overflow-x:auto;margin-left:auto;scrollbar-width:none;}
+  nav .links::-webkit-scrollbar{display:none;}
+  nav .links a{font-family:var(--font-m);font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;text-decoration:none;color:var(--muted);padding:6px 10px;border-radius:6px;white-space:nowrap;transition:.2s;}
+  nav .links a:hover,nav .links a.active{color:var(--teal-ink);background:#dcebe6;}
+
+  .hero{background:var(--night);color:#eafaf6;position:relative;overflow:hidden;border-bottom:3px solid var(--teal);}
+  .hero .wrap{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding:60px 24px 66px;}
+  .hero .eyebrow{color:var(--laser-soft);}
+  .hero h1{font-size:clamp(2.1rem,4.6vw,3.5rem);font-weight:850;letter-spacing:-.03em;margin:14px 0 0;}
+  .hero h1 .glow{color:var(--laser);text-shadow:0 0 18px rgba(255,46,99,.55);}
+  .hero .q{font-size:1.05rem;color:#bfe6df;margin:18px 0 0;max-width:44ch;}
+  .hero .meta{margin-top:24px;font-family:var(--font-m);font-size:.78rem;color:#83b8b0;line-height:1.85;}
+  .hero .meta b{color:#d9f3ee;font-weight:600;}
+  .stage{position:relative;}
+  .wallpanel{background:radial-gradient(circle at 50% 40%,#10302c 0%,#061715 80%);border:1px solid #143f3a;border-radius:16px;padding:14px;box-shadow:0 20px 50px -20px #000 inset,0 12px 40px -18px #000;}
+  .wallpanel canvas{display:block;width:100%;height:auto;border-radius:10px;}
+  .stagecap{font-family:var(--font-m);font-size:.72rem;color:#6fa9a1;text-align:center;margin-top:10px;letter-spacing:.04em;}
+
+  section{padding:64px 0;border-bottom:1px solid var(--line);}
+  section.alt{background:var(--paper);}
+  .shead{display:flex;align-items:baseline;gap:16px;margin-bottom:8px;}
+  .shead .num{font-family:var(--font-m);font-size:.8rem;color:var(--teal);font-weight:700;}
+  h2{font-size:clamp(1.5rem,3vw,2.05rem);font-weight:820;letter-spacing:-.02em;}
+  .lede{font-size:1.05rem;color:var(--teal-deep);max-width:64ch;margin:12px 0 0;}
+  p{max-width:70ch;}
+
+  .eq{font-family:var(--font-m);background:#e7f2ee;border-left:3px solid var(--teal);padding:10px 16px;border-radius:0 8px 8px 0;margin:10px 0;font-size:1rem;color:var(--teal-ink);}
+  .eqc{display:block;text-align:center;}
+  sub,sup{font-size:.72em;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px;}
+  .tcols{display:grid;grid-template-columns:1fr 1fr;gap:14px 34px;margin-top:8px;}
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px;}
+  section.alt .card{background:var(--mint-bg);}
+  .card h3{margin:0 0 4px;font-size:1.05rem;font-weight:750;color:var(--teal-deep);}
+  .tcols h3{font-size:1rem;font-weight:750;color:var(--teal-deep);margin:14px 0 2px;}
+  .tcols p{margin:0;font-size:.96rem;}
+
+  ul.clean{padding-left:0;list-style:none;margin:10px 0 0;}
+  ul.clean li{padding:6px 0 6px 24px;position:relative;border-bottom:1px dashed var(--line);font-size:.95rem;}
+  ul.clean li:last-child{border-bottom:0;}
+  ul.clean li::before{content:"";position:absolute;left:2px;top:13px;width:8px;height:8px;border-radius:2px;background:var(--teal);transform:rotate(45deg);}
+  ol.obj{padding-left:0;list-style:none;counter-reset:o;margin:10px 0 0;}
+  ol.obj li{counter-increment:o;padding:9px 0 9px 42px;position:relative;border-bottom:1px solid var(--line);font-size:.95rem;}
+  ol.obj li:last-child{border-bottom:0;}
+  ol.obj li::before{content:counter(o);position:absolute;left:0;top:8px;width:26px;height:26px;border-radius:8px;background:var(--teal);color:#042a26;font-family:var(--font-m);font-weight:700;display:grid;place-items:center;font-size:.82rem;}
+
+  table{width:100%;border-collapse:collapse;margin-top:16px;font-size:.9rem;}
+  th,td{padding:10px 12px;text-align:center;border-bottom:1px solid var(--line);}
+  th{font-family:var(--font-m);font-size:.72rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);font-weight:600;background:#e7f2ee;}
+  section.alt th{background:var(--mint-bg);}
+  td.mono,th.mono{font-family:var(--font-m);}
+  tr.peak td{background:rgba(255,46,99,.08);}
+  .tag{display:inline-block;font-family:var(--font-m);font-size:.74rem;padding:3px 9px;border-radius:999px;font-weight:600;}
+  .t-ok{background:#d7f3ea;color:#0a6b54;}.t-line{background:#e7e9ee;color:#5b6472;}.t-warn{background:#fbeccb;color:#9a6a14;}
+
+  .lab{background:var(--night);border-radius:16px;padding:22px;color:#eafaf6;margin-top:22px;}
+  .lab.grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:center;}
+  .lab canvas{display:block;width:100%;height:auto;background:radial-gradient(circle at 50% 45%,#10302c,#061715 82%);border:1px solid #143f3a;border-radius:12px;}
+  .controls{display:flex;flex-direction:column;gap:13px;}
+  .presets{display:flex;flex-wrap:wrap;gap:8px;}
+  .presets button{font-family:var(--font-m);font-size:.85rem;background:#0e3a36;color:#bfe6df;border:1px solid #1c544d;padding:8px 12px;border-radius:8px;cursor:pointer;transition:.18s;}
+  .presets button:hover{border-color:var(--teal);}
+  .presets button.on{background:var(--laser);color:#fff;border-color:var(--laser);box-shadow:0 0 16px -2px rgba(255,46,99,.6);}
+  .ctl-row{display:flex;align-items:center;gap:12px;font-family:var(--font-m);font-size:.82rem;color:#bfe6df;}
+  input[type=range]{flex:1;accent-color:var(--laser);}
+  .readout{font-family:var(--font-m);font-size:.82rem;color:#8fc8c0;}
+  .readout b{color:#fff;}
+  .toggle{display:flex;align-items:center;gap:8px;font-family:var(--font-m);font-size:.82rem;color:#bfe6df;cursor:pointer;}
+  .meter{height:10px;background:#0e3a36;border:1px solid #1c544d;border-radius:999px;overflow:hidden;}
+  .meter-fill{height:100%;width:30%;background:linear-gradient(90deg,#16c0a8,#ff2e63);transition:width .08s linear;}
+  .simbtn{font-family:var(--font-m);font-size:.86rem;background:var(--teal);color:#042a26;border:0;padding:10px 14px;border-radius:9px;cursor:pointer;font-weight:700;align-self:flex-start;}
+  .simbtn.on{background:var(--laser);color:#fff;}
+
+  .scrub-vis{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;}
+  .verdict{font-family:var(--font-m);font-size:.8rem;padding:4px 12px;border-radius:999px;}
+  .verdict.yes{background:rgba(22,192,168,.18);color:#7ff0dc;}
+  .verdict.no{background:rgba(255,46,99,.16);color:#ff96ad;}
+
+  .calc{display:grid;grid-template-columns:1fr 1fr;gap:12px 22px;align-items:center;margin-top:6px;}
+  .calc label{font-family:var(--font-m);font-size:.82rem;color:var(--teal-deep);}
+  .calc input{font-family:var(--font-m);width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);}
+  .calc .out{grid-column:1/-1;background:var(--teal-ink);color:#d9f3ee;border-radius:10px;padding:13px 16px;font-family:var(--font-m);font-size:.94rem;}
+  .calc .out b{color:var(--teal);}
+
+  .explain{margin-top:14px;background:var(--night-2);border:1px solid #16403b;border-radius:10px;padding:15px;min-height:70px;color:#cdeee7;font-size:.94rem;}
+  .explain b{color:#fff;}
+  .noterow{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  .noterow button{font-family:var(--font-m);font-size:.82rem;background:#fff;border:1px solid var(--line);padding:7px 12px;border-radius:8px;cursor:pointer;transition:.15s;}
+  section.alt .noterow button{background:var(--mint-bg);}
+  .noterow button.on{background:var(--teal);color:#042a26;border-color:var(--teal);}
+
+  .diagram{background:var(--night);border-radius:16px;padding:18px;margin-top:22px;}
+  .diagram svg{width:100%;height:auto;display:block;}
+
+  .reveal{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+
+  footer{background:var(--teal-ink);color:#9fd3ca;padding:36px 0;font-family:var(--font-m);font-size:.82rem;}
+  footer .wrap{display:flex;flex-wrap:wrap;gap:8px 28px;justify-content:space-between;}
+  footer b{color:#eafaf6;}
+  .refs{font-size:.76rem;color:#7fb6ad;max-width:90ch;margin-top:12px;line-height:1.7;}
+
+  @media(max-width:820px){
+    .hero .wrap{grid-template-columns:1fr;gap:28px;padding:44px 24px 52px;}
+    .grid2,.tcols,.lab.grid,.calc{grid-template-columns:1fr;}
+  }
+  @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}html{scroll-behavior:auto;}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <div class="brand">Ver el <b>sonido</b></div>
+    <div class="links">
+      <a href="#intro">Intro</a>
+      <a href="#objetivos">Objetivos</a>
+      <a href="#teoria">Teoría</a>
+      <a href="#montaje">Montaje</a>
+      <a href="#resonancia">Resonancia</a>
+      <a href="#simulador">Simulador</a>
+      <a href="#puro">Puro vs real</a>
+      <a href="#lissajous">Lissajous</a>
+      <a href="#conclusion">Conclusión</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow">Proyecto final · Física III: Ondas y Moderna</div>
+      <h1>Ver el sonido con una <span class="glow">membrana</span> casera</h1>
+      <p class="q">Un globo, un espejo y un láser que dibuja en la pared el patrón de las frecuencias.</p>
+      <div class="meta">
+        <b>Juana Valentina Fonseca Rojas</b> · <b>Laura Sofía Vargas Sánchez</b> · <b>Laura Samara Noguera Arias</b><br>
+        Profesor: <b>Arjuna Castrillón Camacho</b><br>
+        Ing. Catastral y Geodesia · Universidad Distrital Francisco José de Caldas · 2026
+      </div>
+    </div>
+    <div class="stage">
+      <div class="wallpanel"><canvas id="heroCanvas" width="460" height="380"></canvas></div>
+      <div class="stagecap">patrón del láser en la pared · en vivo</div>
+    </div>
+  </div>
+</header>
+
+<section id="intro">
+  <div class="wrap reveal">
+    <div class="shead"><span class="num">01</span><div class="eyebrow">Introducción</div></div>
+    <h2>Una onda invisible, hecha visible</h2>
+    <p class="lede">El sonido no se ve. Para observarlo construimos un visualizador casero: un globo tensado sobre un tubo de PVC, un espejo pegado a él y un láser que proyecta en la pared un patrón ligado a las frecuencias del sonido.</p>
+    <p>Todo gira en torno a la <b>resonancia</b>: la membrana vibra mucho solo cerca de su frecuencia propia. El trabajo tiene tres partes — su curva de respuesta (200–400 Hz), tono puro vs. instrumentos, y las figuras de Lissajous.</p>
+  </div>
+</section>
+
+<section id="objetivos" class="alt">
+  <div class="wrap reveal">
+    <div class="shead"><span class="num">02</span><div class="eyebrow">Objetivos</div></div>
+    <h2>Qué buscamos demostrar</h2>
+    <div class="grid2" style="margin-top:18px">
+      <div class="card">
+        <h3>Generales</h3>
+        <ul class="clean">
+          <li>Construir un visualizador (membrana, espejo y láser) que haga visible el sonido.</li>
+          <li>Usar su resonancia para explicar el tono puro vs. instrumentos y las figuras de Lissajous.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Específicos</h3>
+        <ol class="obj">
+          <li>Construir el montaje.</li>
+          <li>Medir la curva de respuesta y la frecuencia de resonancia.</li>
+          <li>Comparar tono puro vs. instrumentos en una misma nota.</li>
+          <li>Reproducir las figuras de Lissajous según la razón de frecuencias.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="teoria">
+  <div class="wrap reveal">
+    <div class="shead"><span class="num">03</span><div class="eyebrow">Marco teórico</div></div>
+    <h2>La física, en breve</h2>
+    <div class="tcols">
+      <div>
+        <h3>1 · Sonido y frecuencia</h3>
+        <p>Onda mecánica que necesita un medio. La frecuencia define el tono:</p>
+        <span class="eq eqc">f = 1/T &nbsp;·&nbsp; ω = 2πf</span>
+      </div>
+      <div>
+        <h3>2 · Resonancia</h3>
+        <p>Cada sistema tiene una frecuencia propia; cerca de ella vibra al máximo.</p>
+        <span class="eq eqc">amplitud máx. ⇔ f<sub>sonido</sub> ≈ f<sub>resonancia</sub></span>
+      </div>
+      <div>
+        <h3>3 · Membrana circular tensa</h3>
+        <p>Para el globo (J₀, Bessel) y despejando la tensión:</p>
+        <span class="eq eqc">f<sub>0</sub> = (2.405/2πR)·√(T/σ)</span>
+        <span class="eq eqc">T = σ·(f<sub>0</sub>·2πR/2.405)²</span>
+      </div>
+      <div>
+        <h3>4 · Láser y espejo</h3>
+        <p>El espejo amplifica la vibración: una inclinación mínima desplaza mucho el punto en la pared (ángulo de incidencia = de reflexión).</p>
+      </div>
+      <div>
+        <h3>5 · Figuras de Lissajous</h3>
+        <p>Dos oscilaciones perpendiculares trazan una figura; en razones simples es predecible:</p>
+        <span class="eq eqc">x = A<sub>x</sub>sen(ω<sub>x</sub>t+φ<sub>x</sub>) · y = A<sub>y</sub>sen(ω<sub>y</sub>t+φ<sub>y</sub>)</span>
+      </div>
+      <div>
+        <h3>6 · Puro vs. complejo</h3>
+        <p>Un tono puro tiene una sola frecuencia; un instrumento suma armónicos (eso es el timbre):</p>
+        <span class="eq eqc">f<sub>n</sub> = n·f<sub>0</sub></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="montaje" class="alt">
+  <div class="wrap reveal">
+    <div class="shead"><span class="num">04</span><div class="eyebrow">Montaje</div></div>
+    <h2>Cómo está hecho</h2>
+    <p class="lede">El sonido entra por el tubo y vibra la membrana; el espejo desvía el láser y proyecta el patrón en la pared. La distancia amplifica el movimiento.</p>
+    <div class="diagram">
+      <svg viewBox="0 0 760 300" role="img" aria-label="Esquema del visualizador láser-membrana">
+        <rect x="20" y="40" width="150" height="200" rx="6" fill="#0d2f2b" stroke="#1c544d"/>
+        <g stroke="#ff2e63" stroke-width="1.4" fill="none" opacity="0.9">
+          <ellipse cx="95" cy="140" rx="52" ry="22" transform="rotate(28 95 140)"/>
+          <ellipse cx="95" cy="140" rx="52" ry="22" transform="rotate(-28 95 140)"/>
+          <ellipse cx="95" cy="140" rx="54" ry="10" transform="rotate(80 95 140)"/>
+        </g>
+        <text x="95" y="262" fill="#6fa9a1" font-family="ui-monospace,monospace" font-size="12" text-anchor="middle">Patrón en la pared</text>
+        <rect x="300" y="118" width="250" height="64" rx="10" fill="#16c0a8" opacity="0.22" stroke="#16c0a8"/>
+        <rect x="300" y="118" width="250" height="64" rx="10" fill="none" stroke="#16c0a8" stroke-dasharray="3 6" opacity="0.5"/>
+        <line x1="312" y1="170" x2="534" y2="152" stroke="#ff2e63" stroke-width="1.6" opacity="0.7"/>
+        <line x1="534" y1="152" x2="150" y2="140" stroke="#ff2e63" stroke-width="2" opacity="0.9"/>
+        <rect x="540" y="108" width="16" height="84" rx="4" fill="#f58fb0"/>
+        <rect x="532" y="136" width="8" height="32" rx="2" fill="#d9f3ee" stroke="#9fd3ca"/>
+        <rect x="296" y="162" width="22" height="14" rx="3" fill="#0e3a36" stroke="#1c544d"/>
+        <circle cx="312" cy="169" r="5" fill="#ff2e63"/>
+        <g transform="translate(640,150)">
+          <rect x="0" y="-34" width="20" height="68" rx="4" fill="#0e3a36" stroke="#1c544d"/>
+          <ellipse cx="34" cy="0" rx="22" ry="34" fill="#0e3a36" stroke="#1c544d"/>
+          <ellipse cx="34" cy="0" rx="10" ry="16" fill="#16403b"/>
+          <path d="M60 -22 q14 22 0 44 M68 -30 q20 30 0 60" stroke="#16c0a8" fill="none" opacity="0.6"/>
+        </g>
+        <g font-family="ui-monospace,monospace" font-size="12" fill="#bfe6df" text-anchor="middle">
+          <text x="300" y="192">Láser</text><text x="540" y="214">Membrana</text>
+          <text x="540" y="96">Espejo</text><text x="700" y="210">Fuente de sonido</text>
+        </g>
+      </svg>
+    </div>
+    <div class="grid2" style="margin-top:24px">
+      <div class="card">
+        <h3>Materiales</h3>
+        <ul class="clean">
+          <li>Tubos y acoples de PVC (uno de 8,3 cm para la membrana), tees y codos.</li>
+          <li>Globo (bomba R12) como membrana · 3 g.</li>
+          <li>Bandas de goma, espejo y cinta doble faz.</li>
+          <li>Diodo láser (puntero) y parlante.</li>
+          <li>Audacity (tonos WAV), cámara lenta y hoja milimétrica.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Procedimiento</h3>
+        <ol class="obj">
+          <li>Construir el visualizador y tensar el globo.</li>
+          <li>Barrer 200–400 Hz y medir el tamaño del patrón.</li>
+          <li>Comparar tono puro vs. instrumentos.</li>
+          <li>Combinar pares de frecuencias (Lissajous).</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="resonancia">
+  <div class="wrap reveal">
+    <div class="shead"><span class="num">05</span><div class="eyebrow">Resultados · curva de respuesta</div></div>
+    <h2>¿A qué frecuencias responde?</h2>
+    <p class="lede">Diez tonos puros, midiendo el tamaño del patrón. La respuesta tiene un pico (zona de resonancia) y zonas casi mudas.</p>
+    <div class="lab grid">
+      <div><canvas id="curveCanvas" width="460" height="320"></canvas></div>
+      <div class="controls">
+        <div class="ctl-row"><span>200&nbsp;Hz</span><input type="range" id="freqScrub" min="0" max="9" value="3" step="1"><span>400&nbsp;Hz</span></div>
+        <div class="scrub-vis">
+          <canvas id="blobCanvas" width="300" height="120"></canvas>
+          <div class="readout" id="scrubRead"></div>
+          <div class="verdict yes" id="scrubVerdict"></div>
+        </div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th class="mono">f (Hz)</th><th class="mono">ω (rad/s)</th><th class="mono">Tamaño (m)</th><th>¿Visible?</th></tr></thead>
+      <tbody id="respTable"></tbody>
+    </table>
+    <div class="card" style="margin-top:18px">
+      <h3>Tensión de la membrana (desde f₀)</h3>
+      <div class="calc">
+        <label>f₀ resonancia (Hz)</label><input type="number" id="cF0" value="240" step="1">
+        <label>R radio (m)</label><input type="number" id="cR" value="0.0415" step="0.0001">
+        <label>σ densidad (kg/m²)</label><input type="number" id="cSigma" value="0.554" step="0.001">
+        <div class="out" id="calcOut"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="simulador" class="alt">
+  <div class="wrap reveal">
+    <div class="shead"><span class="num">06</span><div class="eyebrow">Simulador</div></div>
+    <h2>Simula el visualizador</h2>
+    <p class="lede">Mueve la frecuencia o pulsa <b>Barrer</b>: cerca de la resonancia el patrón crece y brilla; lejos, se aplana en una línea.</p>
+    <div class="lab grid">
+      <div><canvas id="simCanvas" width="460" height="400"></canvas></div>
+      <div class="controls">
+        <div class="ctl-row"><span>200&nbsp;Hz</span><input type="range" id="simFreq" min="200" max="400" value="261" step="1"><span>400&nbsp;Hz</span></div>
+        <div class="readout" id="simRead"></div>
+        <div class="meter"><div class="meter-fill" id="simMeter"></div></div>
+        <button class="simbtn" id="simSweep">▶ Barrer frecuencias</button>
+        <div class="readout">El tamaño y el brillo siguen la curva de respuesta medida.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="puro">
+  <div class="wrap reveal">
+    <div class="shead"><span class="num">07</span><div class="eyebrow">Resultados · puro vs real</div></div>
+    <h2>Instrumentos donde el tono puro no</h2>
+    <p class="lede">Misma nota, distinto resultado: el tono puro tiene una sola frecuencia; los instrumentos añaden armónicos que pueden activar la membrana. Pulsa una nota.</p>
+    <table>
+      <thead><tr><th>Nota</th><th class="mono">f (Hz)</th><th>Puro</th><th>Clarinete</th><th>Guitarra</th><th>Trompeta</th><th>Violín</th></tr></thead>
+      <tbody id="pureTable"></tbody>
+    </table>
+    <div class="noterow" id="noteBtns"></div>
+    <div class="explain" id="noteExplain"></div>
+  </div>
+</section>
+
+<section id="lissajous" class="alt">
+  <div class="wrap reveal">
+    <div class="shead"><span class="num">08</span><div class="eyebrow">Las figuras tienen matemática</div></div>
+    <h2>Laboratorio de Lissajous</h2>
+    <p class="lede">Elige una razón y ajusta la fase. "Desafinar" hace girar el patrón, como cuando las frecuencias no son exactas.</p>
+    <div class="lab grid">
+      <div><canvas id="lissaCanvas" width="460" height="400"></canvas></div>
+      <div class="controls">
+        <div class="eyebrow" style="color:var(--laser-soft)">Razón de frecuencias</div>
+        <div class="presets" id="lissaPresets"></div>
+        <div class="ctl-row"><span>Fase</span><input type="range" id="phase" min="0" max="180" value="90"><span id="phaseVal" class="readout">90°</span></div>
+        <label class="toggle"><input type="checkbox" id="detune"> desafinar (patrón que gira)</label>
+        <div class="readout" id="lissaRead"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="conclusion">
+  <div class="wrap reveal">
+    <div class="shead"><span class="num">09</span><div class="eyebrow">Conclusión</div></div>
+    <h2>Todo encaja en la resonancia</h2>
+    <p class="lede">La membrana solo responde cerca de su resonancia. Un tono puro fuera de esa zona apenas la mueve (línea); un instrumento aporta armónicos que sí pueden caer cerca de la resonancia y excitarla (figura).</p>
+    <p>La curva de respuesta dice qué frecuencias mueven la membrana, el contenido armónico dice cuáles están presentes, y su relación define la forma del patrón. Por eso el visualizador "ve" mejor unos sonidos que otros.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div><b>Ver el sonido</b> · visualizador vocal casero</div>
+    <div>Física III: Ondas y Moderna · 2026</div>
+  </div>
+  <div class="wrap"><div class="refs">
+    <b style="color:#eafaf6">Bibliografía:</b> Alonso &amp; Finn (1992) · Crawford (1977), Ondas · French (1974), Vibraciones y ondas · Hecht (2017), Óptica · Rossing, Moore &amp; Wheeler (2014), The Science of Sound · Serway &amp; Jewett (2008) · Tipler &amp; Mosca (2010).
+  </div></div>
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var TAU=Math.PI*2;
+  var reduce=window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+  function drawCurve(ctx,w,h,a,b,phase,headFrac,sizeY){
+    ctx.clearRect(0,0,w,h);
+    var pad=28,cx=w/2,cy=h/2,ax=(w-2*pad)/2,ay=((h-2*pad)/2)*(sizeY==null?1:sizeY),N=1400;
+    ctx.lineJoin="round";ctx.lineCap="round";
+    function path(){ctx.beginPath();for(var i=0;i<=N;i++){var t=i/N*TAU;var x=cx+ax*Math.sin(a*t+phase);var y=cy-ay*Math.sin(b*t);i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}}
+    ctx.shadowColor="rgba(255,46,99,0.9)";ctx.shadowBlur=16;ctx.strokeStyle="rgba(255,46,99,0.85)";ctx.lineWidth=2.4;path();ctx.stroke();
+    ctx.shadowBlur=0;ctx.strokeStyle="rgba(255,150,170,0.9)";ctx.lineWidth=1;path();ctx.stroke();
+    if(headFrac!=null){var th=headFrac*TAU,hx=cx+ax*Math.sin(a*th+phase),hy=cy-ay*Math.sin(b*th);ctx.beginPath();ctx.arc(hx,hy,4.5,0,TAU);ctx.fillStyle="#fff";ctx.shadowColor="#ff2e63";ctx.shadowBlur=18;ctx.fill();ctx.shadowBlur=0;}
+  }
+
+  // HERO
+  var heroC=document.getElementById("heroCanvas"),hx=heroC.getContext("2d");
+  var heroSets=[[1,1,Math.PI/2],[1,2,0],[2,3,0],[3,4,0],[3,5,0]],hStart=null;
+  function heroLoop(ts){if(!hStart)hStart=ts;var el=(ts-hStart)/1000;var s=heroSets[Math.floor(el/4)%heroSets.length];drawCurve(hx,heroC.width,heroC.height,s[0],s[1],s[2]+el*0.25,(el%4)/4);requestAnimationFrame(heroLoop);}
+  reduce?drawCurve(hx,heroC.width,heroC.height,2,3,0,null):requestAnimationFrame(heroLoop);
+
+  // LISSAJOUS
+  var lc=document.getElementById("lissaCanvas"),lx=lc.getContext("2d");
+  var presets=[["1:1",1,1,"Unísono — línea / elipse / círculo según la fase"],["1:2",1,2,"Octava — figura en ocho"],["2:3",2,3,"Quinta justa — patrón con varios lazos"],["3:4",3,4,"Cuarta justa — más lóbulos"],["3:5",3,5,"Sexta mayor — el más complejo"]];
+  var cur={a:2,b:3,label:"2:3",desc:presets[2][3]},pbox=document.getElementById("lissaPresets");
+  presets.forEach(function(p,i){var btn=document.createElement("button");btn.textContent=p[0];if(i===2)btn.classList.add("on");btn.onclick=function(){cur={a:p[1],b:p[2],label:p[0],desc:p[3]};[].forEach.call(pbox.children,function(c){c.classList.remove("on");});btn.classList.add("on");updateRead();};pbox.appendChild(btn);});
+  var phaseEl=document.getElementById("phase"),phaseVal=document.getElementById("phaseVal"),detuneEl=document.getElementById("detune"),lRead=document.getElementById("lissaRead");
+  function updateRead(){lRead.innerHTML="Razón <b style='color:#fff'>"+cur.label+"</b> · "+cur.desc;}
+  updateRead();
+  var lStart=null;
+  function lissaLoop(ts){if(!lStart)lStart=ts;var el=(ts-lStart)/1000;var ph=phaseEl.value*Math.PI/180;if(detuneEl.checked)ph+=el*0.6;phaseVal.textContent=phaseEl.value+"\u00b0";drawCurve(lx,lc.width,lc.height,cur.a,cur.b,ph,reduce?null:(el%4)/4);if(!reduce)requestAnimationFrame(lissaLoop);}
+  if(reduce){phaseEl.addEventListener("input",function(){drawCurve(lx,lc.width,lc.height,cur.a,cur.b,phaseEl.value*Math.PI/180,null);phaseVal.textContent=phaseEl.value+"\u00b0";});drawCurve(lx,lc.width,lc.height,cur.a,cur.b,Math.PI/2,null);}else requestAnimationFrame(lissaLoop);
+
+  // RESPONSE DATA
+  var resp=[{f:200,w:1256.6,s:0.447},{f:220,w:1382.3,s:0.225},{f:240,w:1507.9,s:0.189},{f:261,w:1639.6,s:0.557},{f:280,w:1759.3,s:0.549},{f:300,w:1884.9,s:0.256},{f:320,w:2010.6,s:0.00852},{f:350,w:2199.1,s:0.006501},{f:370,w:2324.8,s:0.243},{f:400,w:2513.3,s:0.005}];
+  var VIS=0.05,PEAK=0.557;
+  function Rof(f){ // interpolación lineal de la curva
+    if(f<=resp[0].f)return resp[0].s;
+    if(f>=resp[resp.length-1].f)return resp[resp.length-1].s;
+    for(var i=0;i<resp.length-1;i++){if(f>=resp[i].f&&f<=resp[i+1].f){var t=(f-resp[i].f)/(resp[i+1].f-resp[i].f);return resp[i].s+t*(resp[i+1].s-resp[i].s);}}
+    return 0;
+  }
+
+  // RESPONSE CURVE + scrubber
+  var cc=document.getElementById("curveCanvas"),cx2=cc.getContext("2d"),selIdx=3;
+  function drawResp(){
+    var w=cc.width,h=cc.height,pl=46,pr=16,pt=18,pb=34;cx2.clearRect(0,0,w,h);
+    var x0=pl,x1=w-pr,y0=h-pb,y1=pt,fmin=200,fmax=400,smax=0.6;
+    function X(f){return x0+(f-fmin)/(fmax-fmin)*(x1-x0);}function Y(s){return y0-(s/smax)*(y0-y1);}
+    cx2.strokeStyle="#173f3a";cx2.lineWidth=1;cx2.fillStyle="#6fa9a1";cx2.font="11px ui-monospace,monospace";cx2.textAlign="center";
+    for(var f=200;f<=400;f+=50){cx2.beginPath();cx2.moveTo(X(f),y1);cx2.lineTo(X(f),y0);cx2.stroke();cx2.fillText(f,X(f),y0+16);}
+    cx2.textAlign="right";for(var s=0;s<=0.6;s+=0.2){cx2.beginPath();cx2.moveTo(x0,Y(s));cx2.lineTo(x1,Y(s));cx2.globalAlpha=.5;cx2.stroke();cx2.globalAlpha=1;cx2.fillText(s.toFixed(1),x0-6,Y(s)+3);}
+    cx2.textAlign="center";cx2.fillStyle="#8fc8c0";cx2.fillText("Frecuencia (Hz)",(x0+x1)/2,h-4);
+    cx2.strokeStyle="#16c0a8";cx2.lineWidth=2.2;cx2.beginPath();resp.forEach(function(d,i){var px=X(d.f),py=Y(d.s);i===0?cx2.moveTo(px,py):cx2.lineTo(px,py);});cx2.stroke();
+    resp.forEach(function(d,i){var px=X(d.f),py=Y(d.s);cx2.beginPath();cx2.arc(px,py,i===selIdx?6:4,0,TAU);cx2.fillStyle=i===selIdx?"#ff2e63":"#16c0a8";if(i===selIdx){cx2.shadowColor="#ff2e63";cx2.shadowBlur=14;}cx2.fill();cx2.shadowBlur=0;});
+    cx2.fillStyle="#cdeee7";cx2.textAlign="left";cx2.font="12px ui-monospace,monospace";cx2.fillText("Curva de respuesta de la membrana",pl,pt-4);
+  }
+  var bc=document.getElementById("blobCanvas"),bx=bc.getContext("2d");
+  function drawBlob(s){var w=bc.width,h=bc.height;bx.clearRect(0,0,w,h);var n=Math.min(s/0.6,1),rx=8+n*120,ry=6+n*34;bx.save();bx.translate(w/2,h/2);bx.rotate(-0.45);bx.shadowColor="rgba(255,46,99,0.8)";bx.shadowBlur=14;bx.strokeStyle="#ff2e63";bx.lineWidth=2;bx.beginPath();bx.ellipse(0,0,rx,ry,0,0,TAU);bx.stroke();bx.restore();}
+  var scrub=document.getElementById("freqScrub"),sRead=document.getElementById("scrubRead"),sVer=document.getElementById("scrubVerdict");
+  function updateScrub(){selIdx=+scrub.value;var d=resp[selIdx];sRead.innerHTML="f = <b>"+d.f+" Hz</b> · ω = <b>"+d.w+"</b> · patrón <b>"+d.s+" m</b>";var v=d.s>=VIS;sVer.textContent=v?"patrón visible":"casi sin respuesta (línea)";sVer.className="verdict "+(v?"yes":"no");drawResp();drawBlob(d.s);}
+  scrub.addEventListener("input",updateScrub);
+  var rt=document.getElementById("respTable");
+  resp.forEach(function(d){var tr=document.createElement("tr");if(d.s===PEAK)tr.className="peak";var v=d.s>=VIS;tr.innerHTML="<td class='mono'>"+d.f+"</td><td class='mono'>"+d.w+"</td><td class='mono'>"+d.s+"</td><td><span class='tag "+(v?"t-ok":"t-line")+"'>"+(v?"Sí":"No / línea")+"</span></td>";rt.appendChild(tr);});
+
+  // TENSION CALC
+  var cF0=document.getElementById("cF0"),cR=document.getElementById("cR"),cSigma=document.getElementById("cSigma"),calcOut=document.getElementById("calcOut");
+  function calc(){var f0=parseFloat(cF0.value),R=parseFloat(cR.value),sg=parseFloat(cSigma.value);if(!(f0>0&&R>0&&sg>0)){calcOut.textContent="Introduce valores positivos.";return;}var inner=f0*TAU*R/2.405,T=sg*inner*inner,w0=TAU*f0;calcOut.innerHTML="ω<sub>0</sub> = <b>"+w0.toFixed(1)+" rad/s</b> &nbsp;·&nbsp; T = <b>"+T.toFixed(2)+" N/m</b>";}
+  [cF0,cR,cSigma].forEach(function(el){el.addEventListener("input",calc);});
+
+  // SIMULADOR
+  var sc=document.getElementById("simCanvas"),sx=sc.getContext("2d");
+  var simFreq=document.getElementById("simFreq"),simRead=document.getElementById("simRead"),simMeter=document.getElementById("simMeter"),simSweep=document.getElementById("simSweep");
+  var sweeping=false,sweepDir=1,simT=0,simLast=null;
+  function simState(){
+    var f=+simFreq.value,R=Rof(f),amp=Math.min(R/PEAK,1);
+    return {f:f,R:R,amp:amp};
+  }
+  function drawSim(amp,f,t){
+    var w=sc.width,h=sc.height,cx=w/2,cy=h/2,pad=36;sx.clearRect(0,0,w,h);
+    var a=2,b=2+(f-200)/200*3; // la figura se complica al subir la frecuencia
+    var ax=(w-2*pad)/2,ayBase=(h-2*pad)/2,ay=ayBase*(0.04+0.96*amp);
+    var ph=t*0.5,N=1200;
+    function path(){sx.beginPath();for(var i=0;i<=N;i++){var u=i/N*TAU;var x=cx+ax*Math.sin(a*u+ph);var y=cy-ay*Math.sin(b*u);i===0?sx.moveTo(x,y):sx.lineTo(x,y);}}
+    sx.lineJoin="round";sx.lineCap="round";
+    sx.shadowColor="rgba(255,46,99,"+(0.3+0.6*amp)+")";sx.shadowBlur=6+amp*20;
+    sx.strokeStyle="rgba(255,46,99,"+(0.4+0.55*amp)+")";sx.lineWidth=1.6+amp*1.6;path();sx.stroke();
+    sx.shadowBlur=0;sx.strokeStyle="rgba(255,170,190,"+(0.3+0.5*amp)+")";sx.lineWidth=1;path();sx.stroke();
+  }
+  function simUpdate(){var st=simState();simRead.innerHTML="f = <b>"+st.f+" Hz</b> · respuesta <b>"+Math.round(st.amp*100)+"%</b>";simMeter.style.width=(6+st.amp*94)+"%";}
+  function simLoop(ts){
+    if(!simLast)simLast=ts;var dt=(ts-simLast)/1000;simLast=ts;simT+=dt;
+    if(sweeping){var f=+simFreq.value+sweepDir*dt*60;if(f>=400){f=400;sweepDir=-1;}if(f<=200){f=200;sweepDir=1;}simFreq.value=Math.round(f);simUpdate();}
+    var st=simState();drawSim(st.amp,st.f,simT);
+    requestAnimationFrame(simLoop);
+  }
+  simFreq.addEventListener("input",simUpdate);
+  simSweep.onclick=function(){sweeping=!sweeping;simSweep.classList.toggle("on",sweeping);simSweep.textContent=sweeping?"⏸ Pausar":"▶ Barrer frecuencias";};
+  simUpdate();
+  if(reduce){var st=simState();drawSim(st.amp,st.f,0);}else requestAnimationFrame(simLoop);
+
+  // PURE vs REAL
+  var notes=[
+    {note:"Do4",f:261,puro:"ok",clarinete:"ok",guitarra:"ok",trompeta:"ok",violin:"ok",why:"261 Hz cae en la zona de máxima respuesta: <b>tanto el tono puro como todos los instrumentos</b> dan figura clara."},
+    {note:"Mi4",f:329,puro:"linea",clarinete:"alargada",guitarra:"ok",trompeta:"ok",violin:"ok",why:"329 Hz está fuera del pico: el tono puro da línea, pero los <b>armónicos</b> de cuerdas y trompeta activan la membrana. El clarinete apenas la estira."},
+    {note:"La4",f:440,puro:"linea",clarinete:"poco",guitarra:"ok",trompeta:"ok",violin:"ok",why:"440 Hz lejos de la resonancia: tono puro = línea. Guitarra, trompeta y violín responden por sus armónicos; el clarinete queda <b>poco visible</b>."},
+    {note:"Do5",f:523,puro:"linea",clarinete:"poco",guitarra:"linea",trompeta:"linea",violin:"linea",why:"523 Hz muy por encima del rango: <b>casi nada activa la membrana</b>. Es el límite del visualizador."}
+  ];
+  function tagFor(v){return v==="ok"?"<span class='tag t-ok'>Figura ✓</span>":v==="linea"?"<span class='tag t-line'>Línea</span>":v==="poco"?"<span class='tag t-warn'>Poco visible</span>":v==="alargada"?"<span class='tag t-warn'>Línea alargada</span>":v;}
+  var pt2=document.getElementById("pureTable");
+  notes.forEach(function(n){var tr=document.createElement("tr");if(n.f===261)tr.className="peak";tr.innerHTML="<td><b>"+n.note+"</b></td><td class='mono'>"+n.f+"</td><td>"+tagFor(n.puro)+"</td><td>"+tagFor(n.clarinete)+"</td><td>"+tagFor(n.guitarra)+"</td><td>"+tagFor(n.trompeta)+"</td><td>"+tagFor(n.violin)+"</td>";pt2.appendChild(tr);});
+  var nb=document.getElementById("noteBtns"),ne=document.getElementById("noteExplain");
+  notes.forEach(function(n,i){var b=document.createElement("button");b.textContent=n.note+" · "+n.f+" Hz";if(i===0)b.classList.add("on");b.onclick=function(){[].forEach.call(nb.children,function(c){c.classList.remove("on");});b.classList.add("on");ne.innerHTML=n.why;};nb.appendChild(b);});
+  ne.innerHTML=notes[0].why;
+
+  drawResp();updateScrub();calc();
+
+  // NAV + REVEAL
+  var sections=[].slice.call(document.querySelectorAll("section[id]")),navlinks=[].slice.call(document.querySelectorAll("nav .links a")),revs=[].slice.call(document.querySelectorAll(".reveal"));
+  if("IntersectionObserver" in window){
+    var ro=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting)e.target.classList.add("in");});},{threshold:0.12});revs.forEach(function(r){ro.observe(r);});
+    var so=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var id=e.target.id;navlinks.forEach(function(a){a.classList.toggle("active",a.getAttribute("href")==="#"+id);});}});},{rootMargin:"-45% 0px -50% 0px"});sections.forEach(function(s){so.observe(s);});
+  }else revs.forEach(function(r){r.classList.add("in");});
+})();
+</script>
+</body>
+</html>
